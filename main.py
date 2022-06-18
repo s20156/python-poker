@@ -44,8 +44,8 @@ def as_server_command():
         "reload": True,
         "reload_dirs": [root_dir],
         "factory": True,
-        "port": 6543,
-        "host": "localhost",
+        "port": int(os.environ['PORT']),
+        "host": "0.0.0.0",
         "loop": "asyncio"
     })
 
