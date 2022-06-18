@@ -1,12 +1,17 @@
-class Room:
-    def __init__(self, id: int, owner_id: int, password: str):
-        self.id = id
-        self.owner_id = owner_id
-        self.password = password
+from sqlalchemy import Column, Integer, ForeignKey, String, Float
+
+from utils.Base import Base
 
 
-class Topic:
-    def __init__(self, id: int, room_id: int, value: str):
-        self.id = id
-        self.room_id = room_id
-        self.value = value
+class Room(Base):
+    __tablename__ = "rooms"
+    id = Column("id", Integer, primary_key=True)
+    owner_id = Column("owner_id", Integer, ForeignKey("users.id"))
+    password = Column("password", String)
+
+
+class Topic(Base):
+    __tablename__ = "topic"
+    id = Column("id", Integer, primary_key=True)
+    room_id = Column("room_id", Integer, ForeignKey("room.id"))
+    value = Column("value", Float)

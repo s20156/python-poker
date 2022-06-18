@@ -32,7 +32,7 @@ class Create(HTTPEndpoint):
 
         try:
             body = await request.json()
-            create_room(get_database(), user_id, body['password'])
+            await create_room(user_id, body['password'])
         except NoPasswordException:
             return Response(JSONResponse({}), status_code=400)
         return JSONResponse({})
@@ -60,7 +60,7 @@ class Join(HTTPEndpoint):
             return Response(JSONResponse({"error": "wrong_data"}).body, status_code=400)
 
         try:
-            join_room(get_database(), user_id, room_id, body['password'])
+            await join_room(user_id, room_id, body['password'])
         except sqlite3.IntegrityError:
             return Response(JSONResponse({"error": "user_already_in_room"}).body, status_code=409)
         return JSONResponse({})

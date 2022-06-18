@@ -5,8 +5,8 @@ from starlette.responses import Response, JSONResponse
 
 from commands import users_commands
 from commands.users_commands import register, WrongDataException, UserExistsException, get_users, \
-    UsersListNotAvailableException
-from database.database import get_database
+    UsersListNotAvailableException, delete_user
+from database.database import get_database, get_database_orm
 from authorization import generate_jwt, decode_jwt
 
 
@@ -17,9 +17,8 @@ class Login(HTTPEndpoint):
         if 'login' not in body or 'password' not in body:
             return Response(JSONResponse({}).body, status_code=400)
 
-        db = get_database()
-
-        out = users_commands.login(db, body['login'], body['password'])
+        out = await users_commands.login(body['login'], body['password'])
+        print(out)
         if out is None:
             return Response(JSONResponse({}).body, status_code=401)
 
@@ -36,7 +35,7 @@ class Register(HTTPEndpoint):
             return Response(JSONResponse({"error": "wrong_data"}).body, status_code=400)
 
         try:
-            register(get_database(), body['login'], body['password'])
+            await register(body['login'], body['password'])
         except WrongDataException:
             return Response(JSONResponse({"error": "wrong_data"}).body, status_code=400)
         except UserExistsException:
@@ -59,10 +58,34 @@ class List(HTTPEndpoint):
             return Response(JSONResponse({}).body, status_code=403)
 
         try:
-            users = json.dumps(get_users(get_database(), filter), default=lambda o: o.__dict__)
+            data = await get_users()
+            users = []
+            for user in data:
+                users.append(user.login)
             return JSONResponse(users, status_code=200)
         except UsersListNotAvailableException:
             return Response(JSONResponse({"error": "users_list_not_available"}).body, status_code=500)
+
+    async def delete(self, request):
+        if 'authorization' not in request.headers:
+            return Response(JSONResponse({}).body, status_code=403)
+
+        token: str = request.headers['authorization']
+        token = token.split(" ")[1]
+        user_id = decode_jwt(token)
+
+        if user_id is None:
+            return Response(JSONResponse({}).body, status_code=403)
+
+        body = await request.json()
+
+        if 'login' not in body:
+            return Response(JSONResponse({"error": "wrong_data"}).body, status_code=400)
+
+        try:
+            await delete_user(body["login"])
+        except WrongDataException:
+            return Response(JSONResponse({"error": "wrong_data"}).body, status_code=400)
 
 
 class Refresh(HTTPEndpoint):

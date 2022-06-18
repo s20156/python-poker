@@ -3,16 +3,17 @@ from typing import Union
 
 import bcrypt
 
+from database.database import get_database_orm
 from database.rooms_model import Room, Topic
 
 
-def create_room(db: Cursor, owner_id: int, password: str):
-    salt = bcrypt.gensalt()
-    hashed_password = bcrypt.hashpw(password.encode('utf-8'), salt).decode('utf-8')
-
-    out = db.execute("INSERT INTO rooms (owner_id, password) VALUES (?, ?) RETURNING id", (owner_id, hashed_password)).fetchone()[0]
-    if not join_room(db, owner_id, out, password):
-        raise Exception("Owner could not join the room!")
+async def create_room(owner_id: int, password: str):
+    async with get_database_orm() as session:
+        salt = bcrypt.gensalt()
+        hashed_password = bcrypt.hashpw(password.encode('utf-8'), salt).decode('utf-8')
+        room = Room(owner_id=owner_id, password=hashed_password)
+        async with session.begin():
+            session.add(room)
 
 
 def get_room(db: Cursor, id: int):

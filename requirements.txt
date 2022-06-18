@@ -3,3 +3,5 @@ click==8.1.3
 uvicorn==0.17.6
 starlette==0.20.0
 pyjwt==2.4.0
+sqlalchemy==1.4.37
+aiosqlite==0.17.0

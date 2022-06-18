@@ -3,7 +3,9 @@ from sqlite3 import Cursor
 from typing import List
 
 import bcrypt
+from sqlalchemy import select, insert, delete
 
+from database.database import get_database_orm
 from database.users_model import User
 
 LOGIN_RE = r'^[a-zA-Z0-9]+$'
@@ -20,31 +22,37 @@ def validate_password(password):
     return len(password) > 4
 
 
-def has_user(db: Cursor, login: str):
-    return len(db.execute("SELECT * FROM users WHERE login = ?", (login, )).fetchall()) > 0
+async def has_user(login: str):
+    async with get_database_orm() as session:
+        return (await session.execute(
+            select(User).where(User.login == login))).scalars().first()
 
 
-def login(db: Cursor, login: str, password: str):
-    user = db.execute("SELECT * FROM users WHERE login = ?", (login, )).fetchone()
-    if user is None:
-        return None
-
-    if not bcrypt.checkpw(password.encode('utf-8'), user[2].encode('utf-8')):
-        return None
-
-    return User(id=user[0], login=user[1])
-
-
-def create_user(db: Cursor, login: str, password):
-    salt = bcrypt.gensalt()
-    password = bcrypt.hashpw(password.encode('utf-8'), salt).decode('utf-8')
-
-    db.execute("INSERT INTO users (login, password) VALUES (?, ?)", (login.lower(), password))
+async def login(login: str, password: str):
+    async with get_database_orm() as session:
+        user = (await session.execute(select(User).where(User.login == login))).scalars().first()
+        if user is None:
+            return None
+        print(user)
+        if not bcrypt.checkpw(password.encode("utf-8"), user.password.encode('utf-8')):
+            return None
+        return user
 
 
-def get_all_users(db: Cursor) -> List[User]:
-    return [User(id=user[0], login=user[1]) for user in db.execute("SELECT * FROM users")]
+async def create_user(login: str, password):
+    async with get_database_orm() as session:
+        async with session.begin():
+            salt = bcrypt.gensalt()
+            password = bcrypt.hashpw(password.encode('utf-8'), salt).decode('utf-8')
+            user = User(login=login, password=password)
+            session.add(user)
 
 
-def remove_user(db: Cursor, login):
-    db.execute("DELETE FROM users WHERE login = ?", (login, ))
+async def get_all_users() -> List[User]:
+    async with get_database_orm() as session:
+        return (await session.execute(select(User))).scalars()
+
+
+async def remove_user(login):
+    async with get_database_orm() as session:
+        return await session.execute(delete(User).where(User.login == login))

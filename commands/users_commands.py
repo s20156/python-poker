@@ -18,24 +18,28 @@ class UsersListNotAvailableException(Exception):
     pass
 
 
-def register(db, login, password):
+async def register(login, password):
     if not users_service.validate_login(login):
         raise WrongDataException("Wrong login")
 
     if not users_service.validate_password(password):
         raise WrongDataException("Wrong password")
 
-    if users_service.has_user(db, login):
+    if await users_service.has_user(login) is not None:
         raise UserExistsException("User exists")
 
-    with db:
-        users_service.create_user(db, login, password)
+    await users_service.create_user(login, password)
 
 
-def login(db, login, password) -> User:
-    return users_service.login(db, login, password)
+async def login(login, password) -> User:
+    return await users_service.login(login, password)
 
 
-def get_users(db):
-    with db:
-        return users_service.get_all_users(db)
+async def get_users():
+    return await users_service.get_all_users()
+
+
+async def delete_user(login):
+    if await users_service.has_user(login) is None:
+        raise UserExistsException("User does not exist")
+    return await users_service.remove_user(login)

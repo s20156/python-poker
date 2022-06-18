@@ -1,5 +1,24 @@
 import os
 import sqlite3
+from sqlalchemy import create_engine
+from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
+from sqlalchemy.orm import sessionmaker
+from sqlalchemy.util._compat_py3k import asynccontextmanager
+
+
+engine = create_async_engine("sqlite+aiosqlite:///db.sqlite", echo=True)
+
+
+@asynccontextmanager
+async def get_database_orm() -> AsyncSession:
+    global engine
+    if engine is None:
+        engine = create_async_engine("sqlite+aiosqlite:///db.sqlite", echo=True)
+
+    async with sessionmaker(
+        engine, expire_on_commit=False, class_=AsyncSession
+    )() as session:
+        yield session
 
 
 db_path = os.path.join(

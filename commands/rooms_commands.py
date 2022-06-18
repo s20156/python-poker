@@ -13,9 +13,8 @@ class NoRoomException(Exception):
     pass
 
 
-def create_room(db, user_id, password):
-    with db:
-        rooms_service.create_room(db, user_id, password)
+async def create_room(user_id, password):
+    await rooms_service.create_room(user_id, password)
 
 
 def join_room(db, user_id, room_id, password):
