@@ -1,1 +1,1 @@
-web: python run as-server
+web: python main.py run as-server
